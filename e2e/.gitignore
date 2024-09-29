@@ -10,3 +10,5 @@ reports
 node_modules
 
 .env
+
+backup/db_backup.sql

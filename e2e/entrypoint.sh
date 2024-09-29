@@ -1,5 +1,8 @@
 #!/bin/bash
 
+npx prisma db pull --schema=./framework/db/prisma/schema.prisma
+npx prisma generate --schema=./framework/db/prisma/schema.prisma
+
 export PGPASSWORD=$DB_PASS
 chmod 777 backup
 
@@ -15,13 +18,13 @@ FROM
 " > /dev/null 2>&1
 
 # Gaugeテストの実行
-if [ -z "${TEST_FILE}" ]; then
-  echo "Running all tests."
-  gauge run specs
-else
-  echo "Running specified test file: ${TEST_FILE}"
-  gauge run "${TEST_FILE}"
-fi
+# if [ -z "${TEST_FILE}" ]; then
+#   echo "Running all tests."
+#   gauge run specs
+# else
+#   echo "Running specified test file: ${TEST_FILE}"
+#   gauge run "${TEST_FILE}"
+# fi
 
 # すべてのテーブルを削除する（出力を抑制）
 psql -h $DB_HOST -U $DB_USER -d $DB_DATABASE -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null 2>&1

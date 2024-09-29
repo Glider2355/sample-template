@@ -2,13 +2,17 @@
   "name": "gauge-ts-template",
   "description": "Starter template for writing TypeScript tests for Gauge",
   "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "@types/pg": "^8.11.10",
+    "dotenv": "^16.4.5",
     "gauge-ts": "0.3.0",
     "playwright": "^1.47.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.47.2",
     "@types/node": "latest",
-    "@playwright/test": "^1.47.2"
+    "prisma": "^5.20.0"
   }
 }
