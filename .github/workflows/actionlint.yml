@@ -1,4 +1,4 @@
-name: Static analysis
+name: github actionの静的チェック
 on:
   pull_request:
     paths: ['.github/workflows/*.yml', '.github/workflows/*.yaml']
