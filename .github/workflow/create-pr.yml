@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   create_pr:
-    if: startsWith(github.event.comment.body, 'create-pr ')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
