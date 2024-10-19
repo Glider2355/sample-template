@@ -1,0 +1,24 @@
+name: Create PR from issue comment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  create_pr:
+    if: startsWith(github.event.comment.body, 'create-pr')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract branch name
+        id: extract_branch
+        run: |
+          echo "::set-output name=branch_name::$(echo '${{ github.event.comment.body }}' | sed -n 's/create-pr //p')"
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          head: ${{ steps.extract_branch.outputs.branch_name }}
+          title: "PR linked to issue #${{ github.event.issue.number }}"
+          body: "This PR is automatically created and linked to issue #${{ github.event.issue.number }}."
