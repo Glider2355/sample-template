@@ -1,4 +1,4 @@
-name: Create PR from issue comment
+name: Create PR from Issue Comment
 
 on:
   issue_comment:
@@ -6,19 +6,33 @@ on:
 
 jobs:
   create_pr:
-    if: startsWith(github.event.comment.body, 'create-pr')
+    if: startsWith(github.event.comment.body, 'create-pr ')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Extract branch name
         id: extract_branch
         run: |
-          echo "::set-output name=branch_name::$(echo '${{ github.event.comment.body }}' | sed -n 's/create-pr //p')"
+          echo "branch_name=$(echo '${{ github.event.comment.body }}' | sed 's/^create-pr //')" >> $GITHUB_OUTPUT
 
-      - name: Create PR
+      - name: Check if branch exists
+        run: |
+          if git ls-remote --heads origin ${{ steps.extract_branch.outputs.branch_name }} | grep ${{ steps.extract_branch.outputs.branch_name }}; then
+            echo "Branch exists."
+          else
+            echo "Branch does not exist."
+            exit 1
+          fi
+
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${{ steps.extract_branch.outputs.branch_name }}
+          branch: ${{ steps.extract_branch.outputs.branch_name }}
           base: main
-          head: ${{ steps.extract_branch.outputs.branch_name }}
-          title: "PR linked to issue #${{ github.event.issue.number }}"
-          body: "This PR is automatically created and linked to issue #${{ github.event.issue.number }}."
+          title: "Linking PR to Issue #${{ github.event.issue.number }}"
+          body: "This PR is automatically created and linked to Issue #${{ github.event.issue.number }}."
+          assignees: ${{ github.event.issue.user.login }}
