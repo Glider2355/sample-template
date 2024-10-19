@@ -7,34 +7,64 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   create_pr:
-    if: startsWith(github.event.comment.body, 'create-pr ')
+    if: ${{ startsWith(github.event.comment.body, 'create-pr ') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Extract branch name
         id: extract_branch
         run: |
-          echo "branch_name=$(echo '${{ github.event.comment.body }}' | sed 's/^create-pr //')" >> $GITHUB_OUTPUT
+          branch_name=$(echo '${{ github.event.comment.body }}' | sed 's/^create-pr //')
+          branch_name=$(echo $branch_name | xargs)
+          echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
 
-      - name: Check if branch exists
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Create new branch
         run: |
-          if git ls-remote --heads origin ${{ steps.extract_branch.outputs.branch_name }} | grep ${{ steps.extract_branch.outputs.branch_name }}; then
-            echo "Branch exists."
-          else
-            echo "Branch does not exist."
-            exit 1
-          fi
+          git checkout -b ${{ steps.extract_branch.outputs.branch_name }}
+
+      - name: Make empty commit
+        run: |
+          git commit --allow-empty -m "Empty commit for PR linked to Issue #${{ github.event.issue.number }}"
+
+      - name: Push new branch
+        run: |
+          git push origin ${{ steps.extract_branch.outputs.branch_name }}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.extract_branch.outputs.branch_name }}
-          base: main
-          title: "Linking PR to Issue #${{ github.event.issue.number }}"
-          body: "This PR is automatically created and linked to Issue #${{ github.event.issue.number }}."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branchName = '${{ steps.extract_branch.outputs.branch_name }}';
+            const issueNumber = ${{ github.event.issue.number }};
+            const prTitle = `Linking PR to Issue #${issueNumber}`;
+            const prBody = `This PR is automatically created and linked to Issue #${issueNumber}.\n\nCloses #${issueNumber}`;
+            const baseBranch = '${{ github.event.repository.default_branch }}';
+
+            // PRを作成
+            const { data: pullRequest } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: prTitle,
+              head: branchName,
+              base: baseBranch,
+              body: prBody
+            });
+            console.log(`Created PR #${pullRequest.number}`);
+
+            // Issueにコメントを追加（オプション）
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `A pull request has been created: #${pullRequest.html_url}`
+            });
